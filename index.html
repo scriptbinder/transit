@@ -49,22 +49,26 @@
   </div>
 
   <script>
-    const API_KEY_511 = "YOUR_511_API_KEY"; // ← Replace with your 511.org API key
     const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
-    const FEED = "TripUpdates?agency=RG";
+    const PROXY_URL = "https://transit-proxy.vercel.app/api/tripupdates";
+    const PROTO_URL = "https://scriptbinder.github.io/transit/gtfs-realtime.proto";
 
     async function getBARTETD(orig = "DBRK", dest = "EMBR") {
-      const data = await fetch(`https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${orig}&key=${BART_API_KEY}&json=y`).then(r => r.json());
-      for (let e of data.root.station[0]?.etd || []) {
-        if (e.abbreviation === dest) return e.estimate[0]?.minutes + " min";
+      try {
+        const data = await fetch(`https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${orig}&key=${BART_API_KEY}&json=y`).then(r => r.json());
+        for (let e of data.root.station[0]?.etd || []) {
+          if (e.abbreviation === dest) return e.estimate[0]?.minutes + " min";
+        }
+        return "Unavailable";
+      } catch {
+        return "Unavailable";
       }
-      return "Unavailable";
     }
 
     async function fetchGtfsRt() {
-      const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
+      const res = await fetch(PROXY_URL);
       const buffer = await res.arrayBuffer();
-      const root = await protobuf.load("https://scriptbinder.github.io/transit/gtfs-realtime.proto");
+      const root = await protobuf.load(PROTO_URL);
       return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buffer));
     }
 
