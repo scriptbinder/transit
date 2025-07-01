@@ -49,7 +49,7 @@
   </div>
 
   <script>
-    const API_KEY_511 = "706b0620-4d76-4883-b9c3-6ef6182a2bcd"; // ← Put your 511.org API key here
+    const API_KEY_511 = "YOUR_511_API_KEY"; // ← Replace with your 511.org API key
     const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
     const FEED = "TripUpdates?agency=RG";
 
@@ -64,8 +64,7 @@
     async function fetchGtfsRt() {
       const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
       const buffer = await res.arrayBuffer();
-      // Replace this URL with your actual GitHub Pages URL hosting gtfs-realtime.proto
-      const root = await protobuf.load("https://yourusername.github.io/your-repo-name/gtfs-realtime.proto");
+      const root = await protobuf.load("https://scriptbinder.github.io/transit/gtfs-realtime.proto");
       return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buffer));
     }
 
