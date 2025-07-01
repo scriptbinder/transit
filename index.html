@@ -9,7 +9,6 @@
     body { font-family: sans-serif; padding: 20px; background: #f0f8ff; }
     h1 { text-align: center; }
     .section { border-left: 4px solid #aaa; margin: 20px 0; padding: 10px 20px; background: #fff; }
-    .active { border-left-color: #3498db; background: #eaf6ff; }
     .label { font-weight: bold; }
     .live { color: #c0392b; font-size: 1.1em; }
     #clock { text-align: center; margin-top: 10px; font-size: 1.2em; }
@@ -20,7 +19,7 @@
   <div id="clock">Loading current time...</div>
 
   <div class="section">
-    <div class="label">🚍 AC Transit (7) — College & Derby (ID: 50600)</div>
+    <div class="label">🚍 AC Transit (7) — College & Derby (Stop ID: 50600)</div>
     <div class="live" id="ac-next">Loading...</div>
   </div>
 
@@ -30,12 +29,12 @@
   </div>
 
   <div class="section">
-    <div class="label">🚋 Cable Car CA — California & Drumm (ID: 13860)</div>
+    <div class="label">🚋 Cable Car — California & Drumm (Stop ID: 13860)</div>
     <div class="live" id="cable-next">Loading...</div>
   </div>
 
   <div class="section">
-    <div class="label">🚍 Muni 12 California — Pacific & Mason (ID: 15847)</div>
+    <div class="label">🚍 Muni 12 — Pacific & Mason (Stop ID: 15847)</div>
     <div class="live" id="muni-next">Loading...</div>
   </div>
 
@@ -45,12 +44,12 @@
   </div>
 
   <div class="section">
-    <div class="label">🚌 Golden Gate Transit 130 — Bridgeway & Ebbtide (ID: 40090)</div>
+    <div class="label">🚌 Golden Gate Transit 130 — Bridgeway & Ebbtide (Stop ID: 40090)</div>
     <div class="live" id="ggt-next">Loading...</div>
   </div>
 
   <script>
-    const API_KEY_511 = "706b0620-4d76-4883-b9c3-6ef6182a2bcd";  // ← Enter your 511.org key here
+    const API_KEY_511 = "706b0620-4d76-4883-b9c3-6ef6182a2bcd"; // ← Put your 511.org API key here
     const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
     const FEED = "TripUpdates?agency=RG";
 
@@ -69,7 +68,7 @@
     async function fetchGtfsRt() {
       const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
       const buffer = await res.arrayBuffer();
-      const root = await protobuf.load("https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto");
+      const root = await protobuf.load("/gtfs-realtime.proto");
       return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buffer));
     }
 
