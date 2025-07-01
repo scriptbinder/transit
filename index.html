@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Live 4th of July Transit Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4th of July Live Transit Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/protobufjs/dist/protobuf.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f0f8ff; }
-    h1 { text-align: center; }
-    .section { border-left: 4px solid #aaa; margin: 20px 0; padding: 10px 20px; background: #fff; }
+    body { font-family: sans-serif; background:#f0f8ff; padding:20px; }
+    h1 { text-align:center; }
+    .section { border-left:4px solid #555; background:#fff; padding:10px 20px; margin:15px 0; }
     .label { font-weight: bold; }
-    .live { color: #c0392b; font-size: 1.1em; }
-    #clock { text-align: center; margin-top: 10px; font-size: 1.2em; }
+    .live { color: #c0392b; font-size:1.1em; }
+    #clock { text-align:center; font-size:1.2em; margin-bottom:10px; }
   </style>
 </head>
 <body>
@@ -48,61 +48,67 @@
     <div class="live" id="ggt-next">Loading...</div>
   </div>
 
-  <script>
-    const API_KEY = "706b0620-4d76-4883-b9c3-6ef6182a2bcd"; // Replace with your 511.org API key
-    const BART_KEY = "MW9S-E7SL-26DU-VV8V";
+<script>
+  const API_KEY = "706b0620-4d76-4883-b9c3-6ef6182a2bcd";
+  const BART_KEY = "MW9S-E7SL-26DU-VV8V";
 
-    setInterval(() => {
-      document.getElementById("clock").textContent = "Current Time: " + new Date().toLocaleTimeString();
-    }, 1000);
+  setInterval(() => {
+    document.getElementById("clock").textContent = "Current Time: " + new Date().toLocaleTimeString();
+  }, 1000);
 
-    async function getBART() {
+  async function getBART() {
+    try {
       const url = `https://api.bart.gov/api/etd.aspx?cmd=etd&orig=DBRK&key=${BART_KEY}&json=y`;
       const d = await fetch(url).then(r => r.json());
       for (let e of d.root.station[0].etd) {
         if (e.abbreviation === "EMBR") return e.estimate[0].minutes + " min";
       }
+    } catch {
       return "Unavailable";
     }
+    return "Unavailable";
+  }
 
-    async function fetchGtfs(path) {
-      const res = await fetch(`https://api.511.org/transit/${path}&api_key=${API_KEY}`);
-      const buf = await res.arrayBuffer();
-      const root = await protobuf.load("https://cdn.jsdelivr.net/npm/gtfs-realtime-bindings/gtfs-realtime.proto");
-      return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buf));
+  async function fetchGtfs(agency) {
+    const url = `https://api.511.org/transit/gtfsrealtime/${agency}/TripUpdates?api_key=${API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch GTFS feed");
+    const buf = await res.arrayBuffer();
+    const root = await protobuf.load('https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto');
+    return root.lookupType('transit_realtime.FeedMessage').decode(new Uint8Array(buf));
+  }
+
+  async function getNextStop(agency, stopId, routeId) {
+    try {
+      const feedMsg = await fetchGtfs(agency);
+      const now = Date.now() / 1000;
+      let best = Infinity;
+      feedMsg.entity.forEach(ent => {
+        const tu = ent.tripUpdate;
+        if (tu?.trip?.routeId === routeId) {
+          (tu.stopTimeUpdate || []).forEach(stu => {
+            if (stu.stopId === stopId && stu.arrival?.time > now) {
+              best = Math.min(best, stu.arrival.time - now);
+            }
+          });
+        }
+      });
+      return isFinite(best) ? Math.round(best / 60) + " min" : "Unavailable";
+    } catch {
+      return "Unavailable";
     }
+  }
 
-    async function getNextStop(feed, stopId, routeId) {
-      try {
-        const feedMsg = await fetchGtfs(feed);
-        const now = Date.now()/1000;
-        let best = Infinity;
-        feedMsg.entity.forEach(ent => {
-          const tu = ent.tripUpdate;
-          if (tu?.trip?.routeId === routeId) {
-            (tu.stopTimeUpdate||[]).forEach(stu => {
-              if (stu.stopId === stopId && stu.arrival?.time > now) {
-                best = Math.min(best, stu.arrival.time - now);
-              }
-            });
-          }
-        });
-        return isFinite(best) ? Math.round(best/60) + " min" : "Unavailable";
-      } catch {
-        return "Unavailable";
-      }
-    }
+  async function updateAll() {
+    document.getElementById("ac-next").textContent = await getNextStop("ac-transit", "59977", "7");
+    document.getElementById("bart-next").textContent = await getBART();
+    document.getElementById("cable-next").textContent = await getNextStop("sfmta", "13860", "CA");
+    document.getElementById("muni-next").textContent = await getNextStop("sfmta", "15387", "1");
+    document.getElementById("ggt-next").textContent = await getNextStop("ggt", "10357", "130");
+  }
 
-    async function updateAll() {
-      document.getElementById("ac-next").textContent = await getNextStop("TripUpdates?agency=AC", "59977", "7");
-      document.getElementById("bart-next").textContent = await getBART();
-      document.getElementById("cable-next").textContent = await getNextStop("TripUpdates?agency=SF", "13860", "CA");
-      document.getElementById("muni-next").textContent = await getNextStop("TripUpdates?agency=SF", "15387", "1");
-      document.getElementById("ggt-next").textContent = await getNextStop("TripUpdates?agency=GGT", "10357", "130");
-    }
-
-    updateAll();
-    setInterval(updateAll, 30000);
-  </script>
+  updateAll();
+  setInterval(updateAll, 30000);
+</script>
 </body>
 </html>
