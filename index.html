@@ -68,7 +68,7 @@
     async function fetchGtfsRt() {
       const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
       const buffer = await res.arrayBuffer();
-      const root = await protobuf.load("/gtfs-realtime.proto");
+      const root = await protobuf.load("gtfs-realtime.proto");
       return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buffer));
     }
 
