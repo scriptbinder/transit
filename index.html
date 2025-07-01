@@ -2,113 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>4th of July Live Transit Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live 4th of July Transit Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/protobufjs/dist/protobuf.min.js"></script>
   <style>
-    body { font-family: sans-serif; background:#f0f8ff; padding:20px; }
-    h1 { text-align:center; }
-    .section { border-left:4px solid #555; background:#fff; padding:10px 20px; margin:15px 0; }
+    body { font-family: sans-serif; padding: 20px; background: #f0f8ff; }
+    h1 { text-align: center; }
+    .section { border-left: 4px solid #aaa; margin: 20px 0; padding: 10px 20px; background: #fff; }
+    .active { border-left-color: #3498db; background: #eaf6ff; }
     .label { font-weight: bold; }
-    .live { color: #c0392b; font-size:1.1em; }
-    #clock { text-align:center; font-size:1.2em; margin-bottom:10px; }
+    .live { color: #c0392b; font-size: 1.1em; }
+    #clock { text-align: center; margin-top: 10px; font-size: 1.2em; }
   </style>
 </head>
 <body>
   <h1>🎆 4th of July Transit Tracker</h1>
   <div id="clock">Loading current time...</div>
 
-  <div class="section">
-    <div class="label">🚍 AC Transit (Route 7 at College & Derby)</div>
+  <div class="section" id="ac">
+    <div class="label">🚍 AC Transit (7)</div>
     <div class="live" id="ac-next">Loading...</div>
   </div>
 
-  <div class="section">
+  <div class="section" id="bart">
     <div class="label">🚇 BART (Downtown Berkeley → Embarcadero)</div>
     <div class="live" id="bart-next">Loading...</div>
   </div>
 
-  <div class="section">
-    <div class="label">🚋 Cable Car (CA at California & Drumm)</div>
+  <div class="section" id="cable">
+    <div class="label">🚋 Cable Car (California Line)</div>
     <div class="live" id="cable-next">Loading...</div>
   </div>
 
-  <div class="section">
-    <div class="label">🚍 Muni (Route 1 at Pacific & Mason)</div>
+  <div class="section" id="muni">
+    <div class="label">🚍 Muni (1 California)</div>
     <div class="live" id="muni-next">Loading...</div>
   </div>
 
-  <div class="section">
+  <div class="section" id="ferry">
     <div class="label">⛴️ Ferry to Sausalito</div>
-    <div class="live">Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
+    <div class="live">Next Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
   </div>
 
-  <div class="section">
-    <div class="label">🚌 Golden Gate Transit (Route 130 at Bridgeway & El Portal)</div>
+  <div class="section" id="ggt">
+    <div class="label">🚌 Golden Gate Transit (130)</div>
     <div class="live" id="ggt-next">Loading...</div>
   </div>
 
-<script>
-  const API_KEY = "706b0620-4d76-4883-b9c3-6ef6182a2bcd";
-  const BART_KEY = "MW9S-E7SL-26DU-VV8V";
+  <script>
+    const API_KEY_511 = "YOUR_511_API_KEY";  // Replace with your real 511.org key
+    const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
 
-  setInterval(() => {
-    document.getElementById("clock").textContent = "Current Time: " + new Date().toLocaleTimeString();
-  }, 1000);
+    const updateClock = () => {
+      const now = new Date();
+      document.getElementById("clock").textContent =
+        "Current Time: " + now.toLocaleTimeString();
+    };
+    setInterval(updateClock, 1000);
+    updateClock();
 
-  async function getBART() {
-    try {
-      const url = `https://api.bart.gov/api/etd.aspx?cmd=etd&orig=DBRK&key=${BART_KEY}&json=y`;
-      const d = await fetch(url).then(r => r.json());
-      for (let e of d.root.station[0].etd) {
-        if (e.abbreviation === "EMBR") return e.estimate[0].minutes + " min";
+    async function getBARTETD(origin = "DBRK", destination = "EMBR") {
+      const url = `https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${origin}&key=${BART_API_KEY}&json=y`;
+      const data = await fetch(url).then(r => r.json());
+      const etdList = data.root.station[0]?.etd || [];
+      for (let e of etdList) {
+        if (e.abbreviation === destination || e.destination.includes("SFO")) {
+          return e.estimate[0]?.minutes + " min";
+        }
       }
-    } catch {
       return "Unavailable";
     }
-    return "Unavailable";
-  }
 
-  async function fetchGtfs(agency) {
-    const url = `https://api.511.org/transit/gtfsrealtime/${agency}/TripUpdates?api_key=${API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Failed to fetch GTFS feed");
-    const buf = await res.arrayBuffer();
-    const root = await protobuf.load('https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto');
-    return root.lookupType('transit_realtime.FeedMessage').decode(new Uint8Array(buf));
-  }
+    async function fetchGtfsRt(feedPath) {
+      const url = `https://api.511.org/transit/${feedPath}&api_key=${API_KEY_511}`;
+      const res = await fetch(url);
+      const buffer = await res.arrayBuffer();
+      const root = await protobuf.load("https://cdn.jsdelivr.net/npm/gtfs-realtime-bindings/gtfs-realtime.proto");
+      const FeedMessage = root.lookupType("transit_realtime.FeedMessage");
+      return FeedMessage.decode(new Uint8Array(buffer));
+    }
 
-  async function getNextStop(agency, stopId, routeId) {
-    try {
-      const feedMsg = await fetchGtfs(agency);
-      const now = Date.now() / 1000;
-      let best = Infinity;
-      feedMsg.entity.forEach(ent => {
-        const tu = ent.tripUpdate;
-        if (tu?.trip?.routeId === routeId) {
-          (tu.stopTimeUpdate || []).forEach(stu => {
-            if (stu.stopId === stopId && stu.arrival?.time > now) {
-              best = Math.min(best, stu.arrival.time - now);
+    async function getRtArrival(feed, stopID, routeID) {
+      try {
+        const decoded = await fetchGtfsRt(feed);
+        const now = Date.now() / 1000;
+        let min = Infinity;
+        decoded.entity.forEach(ent => {
+          const tu = ent.tripUpdate;
+          if (!tu || tu.trip.routeId !== routeID) return;
+          tu.stopTimeUpdate?.forEach(stu => {
+            if (stu.stopId === stopID && stu.arrival?.time > now) {
+              min = Math.min(min, stu.arrival.time - now);
             }
           });
-        }
-      });
-      return isFinite(best) ? Math.round(best / 60) + " min" : "Unavailable";
-    } catch {
-      return "Unavailable";
+        });
+        return isFinite(min) ? Math.round(min / 60) + " min" : "Unavailable";
+      } catch {
+        return "Unavailable";
+      }
     }
-  }
 
-  async function updateAll() {
-    document.getElementById("ac-next").textContent = await getNextStop("ac-transit", "59977", "7");
-    document.getElementById("bart-next").textContent = await getBART();
-    document.getElementById("cable-next").textContent = await getNextStop("sfmta", "13860", "CA");
-    document.getElementById("muni-next").textContent = await getNextStop("sfmta", "15387", "1");
-    document.getElementById("ggt-next").textContent = await getNextStop("ggt", "10357", "130");
-  }
+    async function updateLiveData() {
+      document.getElementById("ac-next").textContent =
+        await getRtArrival("TripUpdates?agency=AC", "STOP_AC", "7"); // Replace STOP_AC
+      document.getElementById("bart-next").textContent =
+        await getBARTETD("DBRK", "EMBR");
+      document.getElementById("cable-next").textContent =
+        await getRtArrival("TripUpdates?agency=SF", "STOP_CABLE", "C"); // Replace STOP_CABLE
+      document.getElementById("muni-next").textContent =
+        await getRtArrival("TripUpdates?agency=SF", "STOP_MUNI", "1"); // Replace STOP_MUNI
+      document.getElementById("ggt-next").textContent =
+        await getRtArrival("TripUpdates?agency=GGT", "STOP_GGT", "130"); // Replace STOP_GGT
+    }
 
-  updateAll();
-  setInterval(updateAll, 30000);
-</script>
+    updateLiveData();
+    setInterval(updateLiveData, 30000);
+  </script>
 </body>
 </html>
