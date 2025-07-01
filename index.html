@@ -45,9 +45,9 @@
     <div class="live">Next Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
   </div>
 
-  <div class="section" id="ggt">
+  <div class="section" id="gg">
     <div class="label">🚌 Golden Gate Transit (130)</div>
-    <div class="live" id="ggt-next">Loading...</div>
+    <div class="live" id="gg-next">Loading...</div>
   </div>
 
   <script>
@@ -112,8 +112,8 @@
         await getRtArrival("TripUpdates?agency=SF", "13880", "CA"); // Replace STOP_CABLE
       document.getElementById("muni-next").textContent =
         await getRtArrival("TripUpdates?agency=SF", "15848", "12"); // Replace STOP_MUNI
-      document.getElementById("ggt-next").textContent =
-        await getRtArrival("TripUpdates?agency=GGT", "40101", "130"); // Replace STOP_GGT
+      document.getElementById("gg-next").textContent =
+        await getRtArrival("TripUpdates?agency=GG", "40101", "130"); // Replace STOP_GG
     }
 
     updateLiveData();
