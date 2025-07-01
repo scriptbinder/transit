@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>4th of July Trip Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f7f9fc;
+      margin: 0;
+      padding: 20px;
+      color: #222;
+    }
+
+    h1 {
+      text-align: center;
+      color: #c0392b;
+    }
+
+    .clock {
+      text-align: center;
+      font-size: 1.2em;
+      margin-bottom: 30px;
+    }
+
+    .timeline {
+      max-width: 700px;
+      margin: 0 auto;
+      border-left: 3px solid #c0392b;
+      padding-left: 20px;
+    }
+
+    .event {
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .event::before {
+      content: "🚩";
+      position: absolute;
+      left: -33px;
+      font-size: 1.2em;
+      top: 0;
+    }
+
+    .time {
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+
+    .mode {
+      font-size: 0.95em;
+      margin-bottom: 6px;
+    }
+
+    .buffer {
+      color: #777;
+      font-size: 0.9em;
+    }
+
+    .ac { color: #27ae60; }
+    .bart { color: #2980b9; }
+    .cable { color: #d35400; }
+    .muni { color: #8e44ad; }
+    .ferry { color: #16a085; }
+    .ggt { color: #e67e22; }
+    .walk { color: #7f8c8d; }
+
+    @media (max-width: 600px) {
+      .timeline {
+        padding-left: 10px;
+      }
+      .event::before {
+        left: -25px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎆 4th of July Trip Tracker</h1>
+  <div class="clock" id="clock">Current Time: --:--:--</div>
+
+  <div class="timeline">
+    <div class="event">
+      <div class="time walk">8:47 AM – Walk to AC Transit stop</div>
+    </div>
+
+    <div class="event">
+      <div class="time ac">9:18 AM – 9:29 AM: AC Transit (7)</div>
+      <div class="mode">College & Derby → Shattuck & Center</div>
+      <div class="buffer">14 min buffer</div>
+    </div>
+
+    <div class="event">
+      <div class="time bart">9:43 AM – 10:05 AM: BART (Red-S)</div>
+      <div class="mode">Downtown Berkeley → Embarcadero</div>
+      <div class="buffer">40 min buffer</div>
+    </div>
+
+    <div class="event">
+      <div class="time cable">10:45 AM – 10:54 AM: Cable Car (CA)</div>
+      <div class="mode">Drumm & California → Mason & California</div>
+      <div class="buffer">1h 9m buffer</div>
+    </div>
+
+    <div class="event">
+      <div class="time muni">12:02 PM – 12:15 PM: Muni (1)</div>
+      <div class="mode">Pacific & Mason → Broadway & Sansome</div>
+      <div class="buffer">20 min buffer</div>
+    </div>
+
+    <div class="event">
+      <div class="time ferry">12:35 PM – 1:05 PM: Ferry to Sausalito</div>
+      <div class="mode">Ferry Building Gate B → Sausalito</div>
+      <div class="buffer">1h 41m buffer (Lunch, prep for bus)</div>
+    </div>
+
+    <div class="event">
+      <div class="time ggt">2:46 PM – 3:26 PM: Golden Gate Transit (130)</div>
+      <div class="mode">Bridgeway & El Portal → Hyde & Grove</div>
+      <div class="buffer">1h 25m buffer (Waymo?)</div>
+    </div>
+
+    <div class="event">
+      <div class="time bart">4:51 PM – 5:20 PM: BART to SFO</div>
+      <div class="mode">Civic Center → SFO</div>
+      <div class="buffer">24 min buffer</div>
+    </div>
+
+    <div class="event">
+      <div class="time">5:44 PM – ✈️ Airport Pickup</div>
+      <div class="mode">Arrival: UA 538 from EWR (Bryson, Catherine, Theo)</div>
+    </div>
+  </div>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('clock').textContent = "Current Time: " + timeString;
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
