@@ -105,15 +105,15 @@
 
     async function updateLiveData() {
       document.getElementById("ac-next").textContent =
-        await getRtArrival("TripUpdates?agency=AC", "59977", "7"); // Replace STOP_AC
+        await getRtArrival(FEED, "59977", "7"); // Replace STOP_AC
       document.getElementById("bart-next").textContent =
         await getBARTETD("DBRK", "EMBR");
       document.getElementById("cable-next").textContent =
-        await getRtArrival("TripUpdates?agency=SF", "13880", "CA"); // Replace STOP_CABLE
+        await getRtArrival(FEED, "13880", "CA"); // Replace STOP_CABLE
       document.getElementById("muni-next").textContent =
-        await getRtArrival("TripUpdates?agency=SF", "15848", "12"); // Replace STOP_MUNI
+        await getRtArrival(FEED, "15848", "12"); // Replace STOP_MUNI
       document.getElementById("gg-next").textContent =
-        await getRtArrival("TripUpdates?agency=GG", "40101", "130"); // Replace STOP_GG
+        await getRtArrival(FEED, "40101", "130"); // Replace STOP_GG
     }
 
     updateLiveData();
