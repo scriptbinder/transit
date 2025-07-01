@@ -2,200 +2,107 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>4th of July Trip Tracker</title>
+  <title>Live 4th of July Transit Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/protobufjs/dist/protobuf.min.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f7f9fc;
-      margin: 0;
-      padding: 20px;
-      color: #222;
-    }
-
-    h1 {
-      text-align: center;
-      color: #c0392b;
-    }
-
-    .clock {
-      text-align: center;
-      font-size: 1.2em;
-      margin-bottom: 30px;
-    }
-
-    .timeline {
-      max-width: 700px;
-      margin: 0 auto;
-      border-left: 3px solid #c0392b;
-      padding-left: 20px;
-    }
-
-    .event {
-      margin-bottom: 30px;
-      position: relative;
-      padding-left: 10px;
-    }
-
-    .event::before {
-      content: "🚩";
-      position: absolute;
-      left: -33px;
-      font-size: 1.2em;
-      top: 0;
-    }
-
-    .event.active {
-      background-color: #eaf2f8;
-      border-left: 5px solid #3498db;
-      padding-left: 15px;
-    }
-
-    .time {
-      font-weight: bold;
-      font-size: 1.1em;
-    }
-
-    .mode {
-      font-size: 0.95em;
-      margin-bottom: 6px;
-    }
-
-    .buffer {
-      color: #777;
-      font-size: 0.9em;
-    }
-
-    .countdown {
-      color: #c0392b;
-      font-weight: bold;
-      font-size: 0.9em;
-    }
-
-    .ac { color: #27ae60; }
-    .bart { color: #2980b9; }
-    .cable { color: #d35400; }
-    .muni { color: #8e44ad; }
-    .ferry { color: #16a085; }
-    .ggt { color: #e67e22; }
-    .walk { color: #7f8c8d; }
-
-    @media (max-width: 600px) {
-      .timeline {
-        padding-left: 10px;
-      }
-      .event::before {
-        left: -25px;
-      }
-    }
+    body { font-family: sans-serif; padding: 20px; background: #f0f8ff; }
+    h1 { text-align: center; }
+    .section { border-left: 4px solid #aaa; margin: 20px 0; padding: 10px 20px; background: #fff; }
+    .label { font-weight: bold; }
+    .live { color: #c0392b; font-size: 1.1em; }
+    #clock { text-align: center; margin-top: 10px; font-size: 1.2em; }
   </style>
 </head>
 <body>
-  <h1>🎆 4th of July Trip Tracker</h1>
-  <div class="clock" id="clock">Current Time: --:--:--</div>
+  <h1>🎆 4th of July Transit Tracker</h1>
+  <div id="clock">Loading current time...</div>
 
-  <div class="timeline" id="timeline">
-    <!-- Each event includes a data-start and data-end in 24hr format -->
-    <div class="event walk" data-start="08:47" data-end="09:18">
-      <div class="time">8:47 AM – Walk to AC Transit stop</div>
-    </div>
+  <div class="section">
+    <div class="label">🚍 AC Transit (Route 7 at College & Derby)</div>
+    <div class="live" id="ac-next">Loading...</div>
+  </div>
 
-    <div class="event ac" data-start="09:18" data-end="09:29">
-      <div class="time">9:18 AM – 9:29 AM: AC Transit (7)</div>
-      <div class="mode">College & Derby → Shattuck & Center</div>
-      <div class="buffer">14 min buffer</div>
-    </div>
+  <div class="section">
+    <div class="label">🚇 BART (Downtown Berkeley → Embarcadero)</div>
+    <div class="live" id="bart-next">Loading...</div>
+  </div>
 
-    <div class="event bart" data-start="09:43" data-end="10:05">
-      <div class="time">9:43 AM – 10:05 AM: BART (Red-S)</div>
-      <div class="mode">Downtown Berkeley → Embarcadero</div>
-      <div class="buffer">40 min buffer</div>
-    </div>
+  <div class="section">
+    <div class="label">🚋 Cable Car (CA at California & Drumm)</div>
+    <div class="live" id="cable-next">Loading...</div>
+  </div>
 
-    <div class="event cable" data-start="10:45" data-end="10:54">
-      <div class="time">10:45 AM – 10:54 AM: Cable Car (CA)</div>
-      <div class="mode">Drumm & California → Mason & California</div>
-      <div class="buffer">1h 9m buffer</div>
-    </div>
+  <div class="section">
+    <div class="label">🚍 Muni (Route 1 at Pacific & Mason)</div>
+    <div class="live" id="muni-next">Loading...</div>
+  </div>
 
-    <div class="event muni" data-start="12:02" data-end="12:15">
-      <div class="time">12:02 PM – 12:15 PM: Muni (1)</div>
-      <div class="mode">Pacific & Mason → Broadway & Sansome</div>
-      <div class="buffer">20 min buffer</div>
-    </div>
+  <div class="section">
+    <div class="label">⛴️ Ferry to Sausalito</div>
+    <div class="live">Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
+  </div>
 
-    <div class="event ferry" data-start="12:35" data-end="13:05">
-      <div class="time">12:35 PM – 1:05 PM: Ferry to Sausalito</div>
-      <div class="mode">Ferry Building Gate B → Sausalito</div>
-      <div class="buffer">1h 41m buffer</div>
-    </div>
-
-    <div class="event ggt" data-start="14:46" data-end="15:26">
-      <div class="time">2:46 PM – 3:26 PM: Golden Gate Transit (130)</div>
-      <div class="mode">Bridgeway & El Portal → Hyde & Grove</div>
-      <div class="buffer">1h 25m buffer (Waymo?)</div>
-    </div>
-
-    <div class="event bart" data-start="16:51" data-end="17:20">
-      <div class="time">4:51 PM – 5:20 PM: BART to SFO</div>
-      <div class="mode">Civic Center → SFO</div>
-      <div class="buffer">24 min buffer</div>
-    </div>
-
-    <div class="event" data-start="17:44" data-end="18:30">
-      <div class="time">5:44 PM – ✈️ Airport Pickup</div>
-      <div class="mode">Arrival: UA 538 from EWR (Bryson, Catherine, Theo)</div>
-    </div>
+  <div class="section">
+    <div class="label">🚌 Golden Gate Transit (Route 130 at Bridgeway & El Portal)</div>
+    <div class="live" id="ggt-next">Loading...</div>
   </div>
 
   <script>
-    function updateClock() {
-      const now = new Date();
-      const pad = n => n.toString().padStart(2, '0');
-      const hours = pad(now.getHours());
-      const minutes = pad(now.getMinutes());
-      const seconds = pad(now.getSeconds());
-      document.getElementById('clock').textContent = `Current Time: ${hours}:${minutes}:${seconds}`;
+    const API_KEY = "706b0620-4d76-4883-b9c3-6ef6182a2bcd"; // Replace with your 511.org API key
+    const BART_KEY = "MW9S-E7SL-26DU-VV8V";
 
-      updateTimeline(`${hours}:${minutes}`);
-    }
+    setInterval(() => {
+      document.getElementById("clock").textContent = "Current Time: " + new Date().toLocaleTimeString();
+    }, 1000);
 
-    function timeToMinutes(t) {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    }
-
-    function updateTimeline(currentTime) {
-      const currentMinutes = timeToMinutes(currentTime);
-      const events = document.querySelectorAll(".event");
-      events.forEach(el => {
-        const start = el.getAttribute("data-start");
-        const end = el.getAttribute("data-end");
-        const startMin = timeToMinutes(start);
-        const endMin = timeToMinutes(end);
-        if (currentMinutes >= startMin && currentMinutes < endMin) {
-          el.classList.add("active");
-          updateCountdown(el, endMin - currentMinutes);
-        } else {
-          el.classList.remove("active");
-          const old = el.querySelector(".countdown");
-          if (old) old.remove();
-        }
-      });
-    }
-
-    function updateCountdown(el, minutesLeft) {
-      let countdown = el.querySelector(".countdown");
-      if (!countdown) {
-        countdown = document.createElement("div");
-        countdown.className = "countdown";
-        el.appendChild(countdown);
+    async function getBART() {
+      const url = `https://api.bart.gov/api/etd.aspx?cmd=etd&orig=DBRK&key=${BART_KEY}&json=y`;
+      const d = await fetch(url).then(r => r.json());
+      for (let e of d.root.station[0].etd) {
+        if (e.abbreviation === "EMBR") return e.estimate[0].minutes + " min";
       }
-      countdown.textContent = `⏳ ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"} left`;
+      return "Unavailable";
     }
 
-    updateClock();
-    setInterval(updateClock, 1000);
+    async function fetchGtfs(path) {
+      const res = await fetch(`https://api.511.org/transit/${path}&api_key=${API_KEY}`);
+      const buf = await res.arrayBuffer();
+      const root = await protobuf.load("https://cdn.jsdelivr.net/npm/gtfs-realtime-bindings/gtfs-realtime.proto");
+      return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buf));
+    }
+
+    async function getNextStop(feed, stopId, routeId) {
+      try {
+        const feedMsg = await fetchGtfs(feed);
+        const now = Date.now()/1000;
+        let best = Infinity;
+        feedMsg.entity.forEach(ent => {
+          const tu = ent.tripUpdate;
+          if (tu?.trip?.routeId === routeId) {
+            (tu.stopTimeUpdate||[]).forEach(stu => {
+              if (stu.stopId === stopId && stu.arrival?.time > now) {
+                best = Math.min(best, stu.arrival.time - now);
+              }
+            });
+          }
+        });
+        return isFinite(best) ? Math.round(best/60) + " min" : "Unavailable";
+      } catch {
+        return "Unavailable";
+      }
+    }
+
+    async function updateAll() {
+      document.getElementById("ac-next").textContent = await getNextStop("TripUpdates?agency=AC", "59977", "7");
+      document.getElementById("bart-next").textContent = await getBART();
+      document.getElementById("cable-next").textContent = await getNextStop("TripUpdates?agency=SF", "13860", "CA");
+      document.getElementById("muni-next").textContent = await getNextStop("TripUpdates?agency=SF", "15387", "1");
+      document.getElementById("ggt-next").textContent = await getNextStop("TripUpdates?agency=GGT", "10357", "130");
+    }
+
+    updateAll();
+    setInterval(updateAll, 30000);
   </script>
 </body>
 </html>
