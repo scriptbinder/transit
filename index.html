@@ -50,7 +50,7 @@
   </div>
 
   <script>
-    const API_KEY_511 = "YOUR_511_API_KEY";  // Replace with your real 511.org key
+    const API_KEY_511 = "706b0620-4d76-4883-b9c3-6ef6182a2bcd";  // Replace with your real 511.org key
     const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
 
     const updateClock = () => {
@@ -104,15 +104,15 @@
 
     async function updateLiveData() {
       document.getElementById("ac-next").textContent =
-        await getRtArrival("TripUpdates?agency=AC", "STOP_AC", "7"); // Replace STOP_AC
+        await getRtArrival("TripUpdates?agency=AC", "59977", "7"); // Replace STOP_AC
       document.getElementById("bart-next").textContent =
         await getBARTETD("DBRK", "EMBR");
       document.getElementById("cable-next").textContent =
-        await getRtArrival("TripUpdates?agency=SF", "STOP_CABLE", "C"); // Replace STOP_CABLE
+        await getRtArrival("TripUpdates?agency=SF", "13880", "CA"); // Replace STOP_CABLE
       document.getElementById("muni-next").textContent =
-        await getRtArrival("TripUpdates?agency=SF", "STOP_MUNI", "1"); // Replace STOP_MUNI
+        await getRtArrival("TripUpdates?agency=SF", "15848", "12"); // Replace STOP_MUNI
       document.getElementById("ggt-next").textContent =
-        await getRtArrival("TripUpdates?agency=GGT", "STOP_GGT", "130"); // Replace STOP_GGT
+        await getRtArrival("TripUpdates?agency=GGT", "40101", "130"); // Replace STOP_GGT
     }
 
     updateLiveData();
