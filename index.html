@@ -19,73 +19,64 @@
   <h1>🎆 4th of July Transit Tracker</h1>
   <div id="clock">Loading current time...</div>
 
-  <div class="section" id="ac">
+  <div class="section">
     <div class="label">🚍 AC Transit (7) — College & Derby (ID: 50600)</div>
     <div class="live" id="ac-next">Loading...</div>
   </div>
 
-  <div class="section" id="bart">
+  <div class="section">
     <div class="label">🚇 BART (Downtown Berkeley → Embarcadero)</div>
     <div class="live" id="bart-next">Loading...</div>
   </div>
 
-  <div class="section" id="cable">
-    <div class="label">🚋 Cable Car (California Line) — Stop ID: <em>YOUR_STOP_CABLE</em></div>
+  <div class="section">
+    <div class="label">🚋 Cable Car CA — California & Drumm (ID: 13860)</div>
     <div class="live" id="cable-next">Loading...</div>
   </div>
 
-  <div class="section" id="muni">
-    <div class="label">🚍 Muni (1 California) — Stop ID: <em>YOUR_STOP_MUNI</em></div>
+  <div class="section">
+    <div class="label">🚍 Muni 12 California — Pacific & Mason (ID: 15847)</div>
     <div class="live" id="muni-next">Loading...</div>
   </div>
 
-  <div class="section" id="ferry">
+  <div class="section">
     <div class="label">⛴️ Ferry to Sausalito</div>
-    <div class="live">Next Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
+    <div class="live">Next Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
   </div>
 
-  <div class="section" id="ggt">
-    <div class="label">🚌 Golden Gate Transit (130) — Stop ID: <em>YOUR_STOP_GGT</em></div>
+  <div class="section">
+    <div class="label">🚌 Golden Gate Transit 130 — Bridgeway & Ebbtide (ID: 40090)</div>
     <div class="live" id="ggt-next">Loading...</div>
   </div>
 
   <script>
-    const API_KEY_511 = "YOUR_511_API_KEY";  // replace with your key
+    const API_KEY_511 = "YOUR_511_API_KEY";  // ← Enter your 511.org key here
     const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
     const FEED = "TripUpdates?agency=RG";
 
-    // Clock
     setInterval(() => {
-      document.getElementById("clock").textContent =
-        "Current Time: " + new Date().toLocaleTimeString();
+      document.getElementById("clock").textContent = "Current Time: " + new Date().toLocaleTimeString();
     }, 1000);
 
-    // BART ETD
     async function getBARTETD(orig="DBRK", dest="EMBR") {
-      const data = await fetch(
-        `https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${orig}&key=${BART_API_KEY}&json=y`
-      ).then(r => r.json());
-      for (let e of data.root.station[0]?.etd||[]) {
-        if (e.abbreviation === dest || e.destination.includes("Embarcadero")) {
-          return e.estimate[0]?.minutes + " min";
-        }
+      const data = await fetch(`https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${orig}&key=${BART_API_KEY}&json=y`).then(r => r.json());
+      for (let e of data.root.station[0]?.etd || []) {
+        if (e.abbreviation === dest) return e.estimate[0]?.minutes + " min";
       }
       return "Unavailable";
     }
 
-    // GTFS-RT Trip Updates via protobuf
     async function fetchGtfsRt() {
       const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
       const buffer = await res.arrayBuffer();
       const root = await protobuf.load("https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto");
-      const Feed = root.lookupType("transit_realtime.FeedMessage");
-      return Feed.decode(new Uint8Array(buffer));
+      return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buffer));
     }
 
     async function getRtArrival(stopID, routeID) {
       try {
         const feed = await fetchGtfsRt();
-        const now = Date.now()/1000;
+        const now = Date.now() / 1000;
         let min = Infinity;
         feed.entity.forEach(ent => {
           const tu = ent.tripUpdate;
@@ -96,19 +87,18 @@
             }
           });
         });
-        return isFinite(min) ? Math.round(min/60) + " min" : "Unavailable";
+        return isFinite(min) ? Math.round(min / 60) + " min" : "Unavailable";
       } catch {
         return "Unavailable";
       }
     }
 
-    // Combined update function
     async function updateLive() {
-      document.getElementById("ac-next").textContent = await getRtArrival("59977", "7");
+      document.getElementById("ac-next").textContent = await getRtArrival("50600", "7");
       document.getElementById("bart-next").textContent = await getBARTETD();
-      document.getElementById("cable-next").textContent = await getRtArrival("13880", "CA");
-      document.getElementById("muni-next").textContent = await getRtArrival("15848", "12");
-      document.getElementById("ggt-next").textContent = await getRtArrival("40101", "130");
+      document.getElementById("cable-next").textContent = await getRtArrival("13860", "CA");
+      document.getElementById("muni-next").textContent = await getRtArrival("15847", "12");
+      document.getElementById("ggt-next").textContent = await getRtArrival("40090", "130");
     }
 
     updateLive();
