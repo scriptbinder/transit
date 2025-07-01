@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <title>Live 4th of July Transit Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto
-"></script>
+  <script src="https://cdn.jsdelivr.net/npm/protobufjs/dist/protobuf.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; background: #f0f8ff; }
     h1 { text-align: center; }
@@ -21,7 +20,7 @@
   <div id="clock">Loading current time...</div>
 
   <div class="section" id="ac">
-    <div class="label">🚍 AC Transit (7)</div>
+    <div class="label">🚍 AC Transit (7) — College & Derby (ID: 50600)</div>
     <div class="live" id="ac-next">Loading...</div>
   </div>
 
@@ -31,64 +30,64 @@
   </div>
 
   <div class="section" id="cable">
-    <div class="label">🚋 Cable Car (California Line)</div>
+    <div class="label">🚋 Cable Car (California Line) — Stop ID: <em>YOUR_STOP_CABLE</em></div>
     <div class="live" id="cable-next">Loading...</div>
   </div>
 
   <div class="section" id="muni">
-    <div class="label">🚍 Muni (1 California)</div>
+    <div class="label">🚍 Muni (1 California) — Stop ID: <em>YOUR_STOP_MUNI</em></div>
     <div class="live" id="muni-next">Loading...</div>
   </div>
 
   <div class="section" id="ferry">
     <div class="label">⛴️ Ferry to Sausalito</div>
-    <div class="live">Next Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
+    <div class="live">Next Departures: 10:15 AM, 12:35 PM, 2:15 PM, 4:00 PM, 5:50 PM (Gate B)</div>
   </div>
 
-  <div class="section" id="gg">
-    <div class="label">🚌 Golden Gate Transit (130)</div>
-    <div class="live" id="gg-next">Loading...</div>
+  <div class="section" id="ggt">
+    <div class="label">🚌 Golden Gate Transit (130) — Stop ID: <em>YOUR_STOP_GGT</em></div>
+    <div class="live" id="ggt-next">Loading...</div>
   </div>
 
   <script>
-    const API_KEY_511 = "706b0620-4d76-4883-b9c3-6ef6182a2bcd";  // Replace with your real 511.org key
+    const API_KEY_511 = "YOUR_511_API_KEY";  // replace with your key
     const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
+    const FEED = "TripUpdates?agency=RG";
 
-    const updateClock = () => {
-      const now = new Date();
+    // Clock
+    setInterval(() => {
       document.getElementById("clock").textContent =
-        "Current Time: " + now.toLocaleTimeString();
-    };
-    setInterval(updateClock, 1000);
-    updateClock();
+        "Current Time: " + new Date().toLocaleTimeString();
+    }, 1000);
 
-    async function getBARTETD(origin = "DBRK", destination = "EMBR") {
-      const url = `https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${origin}&key=${BART_API_KEY}&json=y`;
-      const data = await fetch(url).then(r => r.json());
-      const etdList = data.root.station[0]?.etd || [];
-      for (let e of etdList) {
-        if (e.abbreviation === destination || e.destination.includes("SFO")) {
+    // BART ETD
+    async function getBARTETD(orig="DBRK", dest="EMBR") {
+      const data = await fetch(
+        `https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${orig}&key=${BART_API_KEY}&json=y`
+      ).then(r => r.json());
+      for (let e of data.root.station[0]?.etd||[]) {
+        if (e.abbreviation === dest || e.destination.includes("Embarcadero")) {
           return e.estimate[0]?.minutes + " min";
         }
       }
       return "Unavailable";
     }
 
-    async function fetchGtfsRt(feedPath) {
-      const url = `https://api.511.org/transit/${feedPath}&api_key=${API_KEY_511}`;
-      const res = await fetch(url);
+    // GTFS-RT Trip Updates via protobuf
+    async function fetchGtfsRt() {
+      const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
       const buffer = await res.arrayBuffer();
-      const root = await protobuf.load("https://cdn.jsdelivr.net/npm/gtfs-realtime-bindings/gtfs-realtime.proto");
-      const FeedMessage = root.lookupType("transit_realtime.FeedMessage");
-      return FeedMessage.decode(new Uint8Array(buffer));
+      const root = await protobuf.load("https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto");
+      const Feed = root.lookupType("transit_realtime.FeedMessage");
+      return Feed.decode(new Uint8Array(buffer));
     }
 
-    async function getRtArrival(feed, stopID, routeID) {
+    async function getRtArrival(stopID, routeID) {
       try {
-        const decoded = await fetchGtfsRt(feed);
-        const now = Date.now() / 1000;
+        const feed = await fetchGtfsRt();
+        const now = Date.now()/1000;
         let min = Infinity;
-        decoded.entity.forEach(ent => {
+        feed.entity.forEach(ent => {
           const tu = ent.tripUpdate;
           if (!tu || tu.trip.routeId !== routeID) return;
           tu.stopTimeUpdate?.forEach(stu => {
@@ -97,27 +96,23 @@
             }
           });
         });
-        return isFinite(min) ? Math.round(min / 60) + " min" : "Unavailable";
+        return isFinite(min) ? Math.round(min/60) + " min" : "Unavailable";
       } catch {
         return "Unavailable";
       }
     }
 
-    async function updateLiveData() {
-      document.getElementById("ac-next").textContent =
-        await getRtArrival(FEED, "59977", "7"); // Replace STOP_AC
-      document.getElementById("bart-next").textContent =
-        await getBARTETD("DBRK", "EMBR");
-      document.getElementById("cable-next").textContent =
-        await getRtArrival(FEED, "13880", "CA"); // Replace STOP_CABLE
-      document.getElementById("muni-next").textContent =
-        await getRtArrival(FEED, "15848", "12"); // Replace STOP_MUNI
-      document.getElementById("gg-next").textContent =
-        await getRtArrival(FEED, "40101", "130"); // Replace STOP_GG
+    // Combined update function
+    async function updateLive() {
+      document.getElementById("ac-next").textContent = await getRtArrival("59977", "7");
+      document.getElementById("bart-next").textContent = await getBARTETD();
+      document.getElementById("cable-next").textContent = await getRtArrival("13880", "CA");
+      document.getElementById("muni-next").textContent = await getRtArrival("15848", "12");
+      document.getElementById("ggt-next").textContent = await getRtArrival("40101", "130");
     }
 
-    updateLiveData();
-    setInterval(updateLiveData, 30000);
+    updateLive();
+    setInterval(updateLive, 30000);
   </script>
 </body>
 </html>
