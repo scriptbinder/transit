@@ -48,60 +48,61 @@
     <div class="live" id="gg-next">Loading...</div>
   </div>
 
-  <script>
-    const API_KEY_511 = "706b0620-4d76-4883-b9c3-6ef6182a2bcd"; // ← Put your 511.org API key here
-    const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
-    const FEED = "TripUpdates?agency=RG";
+<script>
+  const API_KEY_511 = "YOUR_511_API_KEY";
+  const BART_API_KEY = "MW9S-E7SL-26DU-VV8V";
+  const FEED = "TripUpdates?agency=RG";
 
+  async function getBARTETD(orig = "DBRK", dest = "EMBR") {
+    const data = await fetch(`https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${orig}&key=${BART_API_KEY}&json=y`).then(r => r.json());
+    for (let e of data.root.station[0]?.etd || []) {
+      if (e.abbreviation === dest) return e.estimate[0]?.minutes + " min";
+    }
+    return "Unavailable";
+  }
+
+  async function fetchGtfsRt() {
+    const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
+    const buffer = await res.arrayBuffer();
+    const root = await protobuf.load("https://yourusername.github.io/your-repo-name/gtfs-realtime.proto");
+    return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buffer));
+  }
+
+  async function getRtArrival(stopID, routeID) {
+    try {
+      const feed = await fetchGtfsRt();
+      const now = Date.now() / 1000;
+      let min = Infinity;
+      feed.entity.forEach(ent => {
+        const tu = ent.tripUpdate;
+        if (!tu || tu.trip.routeId !== routeID) return;
+        tu.stopTimeUpdate?.forEach(stu => {
+          if (stu.stopId === stopID && stu.arrival?.time > now) {
+            min = Math.min(min, stu.arrival.time - now);
+          }
+        });
+      });
+      return isFinite(min) ? Math.round(min / 60) + " min" : "Unavailable";
+    } catch {
+      return "Unavailable";
+    }
+  }
+
+  async function updateLive() {
+    document.getElementById("ac-next").textContent = await getRtArrival("50600", "7");
+    document.getElementById("bart-next").textContent = await getBARTETD();
+    document.getElementById("cable-next").textContent = await getRtArrival("13860", "CA");
+    document.getElementById("muni-next").textContent = await getRtArrival("15847", "12");
+    document.getElementById("ggt-next").textContent = await getRtArrival("40090", "130");
+  }
+
+  window.onload = () => {
+    updateLive();
+    setInterval(updateLive, 30000);
     setInterval(() => {
       document.getElementById("clock").textContent = "Current Time: " + new Date().toLocaleTimeString();
     }, 1000);
-
-    async function getBARTETD(orig="DBRK", dest="EMBR") {
-      const data = await fetch(`https://api.bart.gov/api/etd.aspx?cmd=etd&orig=${orig}&key=${BART_API_KEY}&json=y`).then(r => r.json());
-      for (let e of data.root.station[0]?.etd || []) {
-        if (e.abbreviation === dest) return e.estimate[0]?.minutes + " min";
-      }
-      return "Unavailable";
-    }
-
-    async function fetchGtfsRt() {
-      const res = await fetch(`https://api.511.org/transit/${FEED}&api_key=${API_KEY_511}`);
-      const buffer = await res.arrayBuffer();
-      const root = await protobuf.load("gtfs-realtime.proto");
-      return root.lookupType("transit_realtime.FeedMessage").decode(new Uint8Array(buffer));
-    }
-
-    async function getRtArrival(stopID, routeID) {
-      try {
-        const feed = await fetchGtfsRt();
-        const now = Date.now() / 1000;
-        let min = Infinity;
-        feed.entity.forEach(ent => {
-          const tu = ent.tripUpdate;
-          if (!tu || tu.trip.routeId !== routeID) return;
-          tu.stopTimeUpdate?.forEach(stu => {
-            if (stu.stopId === stopID && stu.arrival?.time > now) {
-              min = Math.min(min, stu.arrival.time - now);
-            }
-          });
-        });
-        return isFinite(min) ? Math.round(min / 60) + " min" : "Unavailable";
-      } catch {
-        return "Unavailable";
-      }
-    }
-
-    async function updateLive() {
-      document.getElementById("ac-next").textContent = await getRtArrival("50600", "7");
-      document.getElementById("bart-next").textContent = await getBARTETD();
-      document.getElementById("cable-next").textContent = await getRtArrival("13860", "CA");
-      document.getElementById("muni-next").textContent = await getRtArrival("15847", "12");
-      document.getElementById("ggt-next").textContent = await getRtArrival("40090", "130");
-    }
-
-    updateLive();
-    setInterval(updateLive, 30000);
-  </script>
+  };
+</script>
 </body>
 </html>
